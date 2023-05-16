@@ -1,0 +1,161 @@
+import PropTypes from 'prop-types';
+import { useSelector, useDispatch } from 'react-redux';
+import { useParams } from 'react-router-dom';
+import * as React from 'react';
+import { useTheme } from '@mui/material/styles';
+import { LoadingButton } from '@mui/lab';
+import axios from 'axios';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogContentText,
+  List,
+  Select,
+  Stack,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  ListItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  TextField,
+  useMediaQuery
+} from '@mui/material';
+import DialogActions from '@mui/material/DialogActions';
+import SimCardDownloadIcon from '@mui/icons-material/SimCardDownload';
+import { downloadResumeAsync } from '../../redux/slices/hiringSlice';
+import { useEffect, useState } from 'react';
+import { UserListHead } from 'src/components/_administrator/list';
+
+// ---------------------------------------------------------------------
+
+DownloadResume.propTypes = {
+  setView: PropTypes.func.isRequired
+};
+
+export default function DownloadResume() {
+  const params = useParams();
+  const dispatch = useDispatch();
+
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const [view, setNewView] = useState(false);
+  const [downloadDate, setDownloadDate] = useState('');
+  //   const recruiter = useSelector(getAllRecFromUser);
+  const { recuriterId } = useSelector((state) => state.user);
+  console.log('234', recuriterId);
+  const [loading, setLoading] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [loader, setLoader] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+  const { hireId } = useSelector((state) => state.candidate);
+  console.log('first', hireId);
+
+  //   const calendarDetails = hireId.find((_x) => _x.resume_id === Number(params.resumeid));
+  const projectDetails = hireId.find((val) => {
+    console.log('sdfgh', val.resume_id);
+    return val.resume_id == params.resumeid;
+  });
+  console.log('sec', projectDetails.resume_id);
+
+  useEffect(() => {
+    setNewView(true);
+  }, []);
+
+  const token = localStorage.getItem('accessToken');
+
+  const handleDownload = () => {
+    setLoader(true);
+    setError('');
+    axios({
+      url: `https://secure.focusrtech.com:5050/HiringApplication/downloadResume/${projectDetails.resume_id}`,
+      method: 'GET',
+      responseType: 'blob',
+      headers: {
+        'Content-Type': 'application/pdf',
+        // eslint-disable-next-line prefer-template
+        Authorization: 'Bearer ' + token
+      }
+    })
+      .then((response) => {
+        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileLink = document.createElement('a');
+        fileLink.href = fileURL;
+        fileLink.setAttribute('download', 'file.pdf');
+        document.body.appendChild(fileLink);
+        fileLink.click();
+      })
+      // axios
+      //   .get(`https://secure.focusrtech.com:5050/HiringApplication/downloadResume/${projectDetails.resume_id}`, {
+      //     headers: {
+      //       'Content-Type': 'application/pdf',
+      //       // eslint-disable-next-line prefer-template
+      //       Authorization: 'Bearer ' + token
+      //     }
+      //   })
+      //   .then((response) => {
+      //     setLoader(false);
+
+      //     const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+      //     const fileLink = document.createElement('a');
+      //     fileLink.href = fileURL;
+      //     fileLink.setAttribute('download', 'Resume.pdf');
+      //     document.body.appendChild(fileLink);
+      //     fileLink.click();
+      //   })
+      .catch((error) => {
+        setLoader(false);
+        setError(error.message);
+      });
+  };
+
+  //   const handleDownload = () => {
+  //     setLoading(true);
+  //     setDownloadDate(String(`${projectDetails.resume_id}`));
+  //     dispatch(downloadResumeAsync(String(`${projectDetails.resume_id}`)));
+  //   };
+
+  return (
+    <Dialog fullScreen={fullScreen} open={view} aria-labelledby="epic-preview">
+      <DialogTitle id="epic-preview" sx={{ marginBottom: '10%' }}>
+        Download Resume
+      </DialogTitle>
+      <DialogContent>
+        <Stack sx={{ mt: 1 }}>
+          <LoadingButton
+            // loading={loading}
+            // loadingIndicator="Downloading..."
+            endIcon={<SimCardDownloadIcon />}
+            variant="contained"
+            onClick={handleDownload}
+            size="small"
+          >
+            {loader ? <>Downloading..</> : <>Download</>}
+          </LoadingButton>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => {
+            window.history.back();
+          }}
+        >
+          back
+        </Button>{' '}
+      </DialogActions>
+    </Dialog>
+  );
+}
